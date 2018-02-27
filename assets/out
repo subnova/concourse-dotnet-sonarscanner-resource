@@ -1,0 +1,71 @@
+#!/bin/bash
+
+set -e
+
+cd "${1}"
+
+exec 3>&1
+exec 1>&2
+set +x
+# for jq
+PATH=/usr/local/bin:$PATH
+
+payload=$(mktemp /tmp/resource-in.XXXXXX)
+
+cat > "${payload}" <&0
+
+sonar_host_url=$(jq -r '.source.host_url // ""' < "${payload}")
+if [ -z "${sonar_host_url}" ]; then
+  echo "host_url param has not been specified."
+  exit 1
+fi
+
+sonar_login=$(jq -r '.source.login // ""' < "${payload}")
+if [ -z "${sonar_login}" ]; then
+  echo "sonar_login param has not been specified."
+  exit 1
+fi
+
+sonar_project_key=$(jq -r '.params.project_key // ""' < "${payload}")
+if [ -z "${sonar_project_key}" ]; then
+  echo "sonar_project_key param has not been specified."
+  exit 1
+fi
+
+sonar_project_name=$(jq -r '.params.project_name // ""' < "${payload}")
+if [ -z "${sonar_project_name}" ]; then
+  echo "sonar_project_name param has not been specified."
+  exit 1
+fi
+
+sonar_version=$(jq -r '.params.version // ""' < "${payload}")
+if [ -z "${sonar_version}" ]; then
+  echo "version param has not been specified."
+  exit 1
+fi
+
+sonar_version_val=$(cat $sonar_version)
+if [ -z "${sonar_version_val}" ]; then
+  echo "no version in version file"
+  exit 1
+fi
+
+sonar_source=$(jq -r '.params.source // ""' < "${payload}")
+if [ -z "${sonar_source}" ]; then
+  echo "source param has not been specified."
+  exit 1
+fi
+
+cd $sonar_source
+mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.host.url=$sonar_host_url /d:sonar.login=$sonar_login /k:$sonar_project_key /n:"$sonar_project_name" /v:$sonar_version_val
+dotnet restore
+dotnet build
+dotnet test
+mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe end /d:sonar.login=$sonar_login
+
+jq -n "{
+  version: $sonar_version_val
+  metadata: [
+    { name: \"project_key\", value: \"${sonar_project_key:?}\" }
+  ]
+}" >&3
