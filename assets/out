@@ -6,13 +6,18 @@ cd "${1}"
 
 exec 3>&1
 exec 1>&2
-set +x
+set -x
+
 # for jq
 PATH=/usr/local/bin:$PATH
 
-payload=$(mktemp /tmp/resource-in.XXXXXX)
+payload=$(mktemp /tmp/resource-out.XXXXXX)
 
 cat > "${payload}" <&0
+
+echo "${1}"
+cat "${payload}"
+ls -l
 
 sonar_host_url=$(jq -r '.source.host_url // ""' < "${payload}")
 if [ -z "${sonar_host_url}" ]; then
