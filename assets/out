@@ -67,7 +67,7 @@ dotnet test
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe end /d:sonar.login=$sonar_login
 
 jq -n "{
-  version: $sonar_version_val
+  version: "${sonar_version_val}",
   metadata: [
     { name: \"project_key\", value: \"${sonar_project_key:?}\" }
   ]
