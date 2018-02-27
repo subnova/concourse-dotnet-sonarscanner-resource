@@ -43,4 +43,5 @@ RUN wget https://github.com/SonarSource/sonar-scanner-msbuild/releases/download/
 
 ENV PATH="$SONAR_SCANNER_MSBUILD_HOME:$SONAR_SCANNER_MSBUILD_HOME/sonar-scanner-$SONAR_SCANNER_VERSION/bin:${PATH}"
 
-COPY ./assets/* /opt/resource
+RUN mkdir /opt/resource
+COPY ./assets/* /opt/resource/
