@@ -65,6 +65,7 @@ mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.hos
 dotnet restore
 dotnet build
 dotnet test
+ls
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe end /d:sonar.login=$sonar_login
 
 jq -n "{
