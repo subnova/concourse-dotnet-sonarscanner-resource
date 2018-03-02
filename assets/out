@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 cd "${1}"
 
 exec 3>&1
@@ -59,11 +61,15 @@ cd $sonar_source
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.host.url=$sonar_host_url /d:sonar.login=$sonar_login /k:$sonar_project_key /n:"$sonar_project_name" /v:$sonar_version_val
 dotnet restore
 dotnet build
-dotnet test
+
+for p in $(for f in */*.csproj; do grep -l Microsoft.NET.Test.Sdk $f; done); do dotnet test $p; done
+
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe end /d:sonar.login=$sonar_login
 
+ce_task_id=$(curl -u "${sonar_login}:" -s -L "${sonar_host_url}/api/ce/activity?q=${sonar_project_key}&onlyCurrents=true" | jq -r .tasks[0].id)
+
 jq -n "{
-  version: { \"my_version\": \"1\" },
+  version: { \"ce_task_id\": \"${ce_task_id}\" },
   metadata: [
     { name: \"project_key\", value: \"${sonar_project_key:?}\" }
   ]
