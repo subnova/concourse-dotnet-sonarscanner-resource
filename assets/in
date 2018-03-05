@@ -1,20 +1,45 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
-exec 3>&1 # make stdout available as fd 3 for the result
-exec 1>&2 # redirect all output to stderr for logging
+cd "${1}"
 
-PAYLOAD=$(mktemp /tmp/resource-in.XXXXXX)
+exec 3>&1
+exec 1>&2
+set +x
 
-cat > "$PAYLOAD" <&0
+# for jq
+PATH=/usr/local/bin:$PATH
 
-TS=$(jq '.version.timestamp // empty' < "$PAYLOAD")
-[ -z "$TS" ] && TS='"none"'
+payload=$(mktemp /tmp/resource-out.XXXXXX)
+
+cat > "${payload}" <&0
+
+sonar_host_url=$(jq -r '.source.host_url // ""' < "${payload}")
+if [ -z "${sonar_host_url}" ]; then
+  echo "host_url param has not been specified."
+  exit 1
+fi
+
+sonar_login=$(jq -r '.source.login // ""' < "${payload}")
+if [ -z "${sonar_login}" ]; then
+  echo "sonar_login param has not been specified."
+  exit 1
+fi
+
+sonar_project_key=$(jq -r '.params.project_key // ""' < "${payload}")
+if [ -z "${sonar_project_key}" ]; then
+  echo "sonar_project_key param has not been specified."
+  exit 1
+fi
+
+ce_task_id=$(curl -u "${sonar_login}:" -s -L "${sonar_host_url}/api/ce/activity?q=${sonar_project_key}&onlyCurrents=true" | jq -r .tasks[0].id)
+
+curl -s -u "${sonar_login}:" -L -o sonar-qualitygates-status.json "${sonar_host_url}/api/qualitygates/project_status?projectKey=${sonar_project_key}"
 
 jq -n "{
-  version: {
-    timestamp: $TS
-  }
+  version: { \"ce_task_id\": \"${ce_task_id}\" },
+  metadata: [
+    { name: \"project_key\", value: \"${sonar_project_key:?}\" }
+  ]
 }" >&3
-

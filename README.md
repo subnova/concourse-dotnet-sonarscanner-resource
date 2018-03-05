@@ -8,6 +8,8 @@ Includes support for:
 
 ## Usage
 
+### Scan application and upload to SonarQube
+
 Source parameters:
 * host_url - the URL to the SonarQube server (e.g. http://localhost:9000)
 * login - the SonarQube login token
@@ -48,4 +50,36 @@ jobs:
       version: version/version
       source: my-source
       coverage_threshold: 60
+```
+
+### Retrieve quality gates status
+
+Source parameters:
+* host_url - the URL to the SonarQube server (e.g. http://localhost:9000)
+* login - the SonarQube login token
+
+Parameters:
+* project_key - the configured project key in SonarQube
+
+```
+resource_types:
+- name: sonarqube-scanner
+  type: docker-image
+  source:
+    repository: subnova/concourse-dotnet-sonarscanner-resource
+    tag: "latest"
+
+resources:
+- name: sonarqube-scan
+  type: sonarqube-scanner
+  source:
+    host_url: ((sonarqube_host_url))
+    login: ((sonarqube_login_token))
+
+jobs:
+- name: sonarqube-qualtity-status
+  plan:
+  - get: sonarqube-scan
+    params:
+      project_key: myproject
 ```
