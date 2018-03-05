@@ -8,8 +8,6 @@ Includes support for:
 
 ## Usage
 
-### Scan application and upload to SonarQube
-
 Source parameters:
 * host_url - the URL to the SonarQube server (e.g. http://localhost:9000)
 * login - the SonarQube login token
@@ -22,6 +20,8 @@ Parameters:
 * coverage_threshold - the desired minimum coverage percentage (defaults to 70)
 
 Expects source directory to contain one or more directories containing ```.csproj``` files.  Test projects are identified by ```.csproj``` files including ```Microsoft.NET.Test.Sdk```.  Any other ```.csproj``` is considered to be source.  All ```.csproj``` files must include a ```ProjectGuid``` field.
+
+The following ```get``` results in the return of the quality gates status of the project in a file called ```sonar-qualitygates-status.json``` in the following [format](https://next.sonarqube.com/sonarqube/web_api/api/qualitygates/project_status).
 
 ```
 resource_types:
@@ -50,34 +50,4 @@ jobs:
       version: version/version
       source: my-source
       coverage_threshold: 60
-```
-
-### Retrieve quality gates status
-
-Source parameters:
-* host_url - the URL to the SonarQube server (e.g. http://localhost:9000)
-* login - the SonarQube login token
-
-```
-resource_types:
-- name: sonarqube-scanner
-  type: docker-image
-  source:
-    repository: subnova/concourse-dotnet-sonarscanner-resource
-    tag: "latest"
-
-resources:
-- name: sonarqube-scan
-  type: sonarqube-scanner
-  source:
-    host_url: ((sonarqube_host_url))
-    login: ((sonarqube_login_token))
-
-jobs:
-- name: sonarqube
-  plan:
-  - put: sonarqube-scan
-    params:
-      ...
-  - get: sonarqube-scan
 ```
