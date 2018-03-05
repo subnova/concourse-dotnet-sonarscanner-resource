@@ -1,5 +1,11 @@
 # Concourse resource for sonar scanning a dotnet core application
 
+Provides support for [SonarQube](https://www.sonarqube.org/) scanning a C# .NET core 2 application.
+
+Includes support for:
+* Core SonarQube scans
+* Test coverage using [MiniCover](https://github.com/lucaslorentz/minicover)
+
 ## Usage
 
 ```
