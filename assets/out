@@ -59,8 +59,8 @@ fi
 
 cd $sonar_source
 
-source_projects=$(for f in */*.csproj; do grep -L Microsoft.NET.Test.Sdk $f; done)
-test_projects=$(for f in */*.csproj; do grep -l Microsoft.NET.Test.Sdk $f; done)
+source_projects=$(for f in */*.csproj; do grep -L Microsoft.NET.Test.Sdk $f || true; done)
+test_projects=$(for f in */*.csproj; do grep -l Microsoft.NET.Test.Sdk $f || true; done)
 
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.host.url=$sonar_host_url /d:sonar.login=$sonar_login /k:$sonar_project_key /n:"$sonar_project_name" /v:$sonar_version_val /d:sonar.cs.opencover.reportsPaths=$1/$sonar_source/opencovercoverage.xml
 dotnet restore
