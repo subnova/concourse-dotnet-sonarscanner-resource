@@ -58,9 +58,6 @@ Source parameters:
 * host_url - the URL to the SonarQube server (e.g. http://localhost:9000)
 * login - the SonarQube login token
 
-Parameters:
-* project_key - the configured project key in SonarQube
-
 ```
 resource_types:
 - name: sonarqube-scanner
