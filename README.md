@@ -74,9 +74,10 @@ resources:
     login: ((sonarqube_login_token))
 
 jobs:
-- name: sonarqube-qualtity-status
+- name: sonarqube
   plan:
-  - get: sonarqube-scan
+  - put: sonarqube-scan
     params:
-      project_key: myproject
+      ...
+  - get: sonarqube-scan
 ```
