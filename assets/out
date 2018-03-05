@@ -29,13 +29,13 @@ fi
 
 sonar_project_key=$(jq -r '.params.project_key // ""' < "${payload}")
 if [ -z "${sonar_project_key}" ]; then
-  echo "sonar_project_key param has not been specified."
+  echo "project_key param has not been specified."
   exit 1
 fi
 
 sonar_project_name=$(jq -r '.params.project_name // ""' < "${payload}")
 if [ -z "${sonar_project_name}" ]; then
-  echo "sonar_project_name param has not been specified."
+  echo "project_name param has not been specified."
   exit 1
 fi
 
@@ -79,10 +79,11 @@ dotnet minicover report --workdir $1/$sonar_source --threshold $coverage_thresho
 dotnet minicover opencoverreport --workdir $1/$sonar_source --threshold $coverage_threshold || true
 cd "$1/$sonar_source"
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe end /d:sonar.login=$sonar_login
-ce_task_id=$(curl -u "${sonar_login}:" -s -L "${sonar_host_url}/api/ce/activity?q=${sonar_project_key}&onlyCurrents=true" | jq -r .tasks[0].id)
+
+analysis_id=$(curl -u "${sonar_login}:" -s -L "${sonar_host_url}/api/ce/activity?q=${sonar_project_key}&onlyCurrents=true" | jq -r .tasks[0].analysisId)
 
 jq -n "{
-  version: { \"ce_task_id\": \"${ce_task_id}\" },
+  version: { \"analysis_id\": \"${analysis_id}\" },
   metadata: [
     { name: \"project_key\", value: \"${sonar_project_key:?}\" }
   ]

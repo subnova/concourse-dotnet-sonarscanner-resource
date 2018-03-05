@@ -23,23 +23,23 @@ fi
 
 sonar_login=$(jq -r '.source.login // ""' < "${payload}")
 if [ -z "${sonar_login}" ]; then
-  echo "sonar_login param has not been specified."
+  echo "login param has not been specified."
   exit 1
 fi
 
-sonar_project_key=$(jq -r '.params.project_key // ""' < "${payload}")
-if [ -z "${sonar_project_key}" ]; then
-  echo "sonar_project_key param has not been specified."
+analysis_id=$(jq -r '.version.analysis_id // ""' < "${payload}")
+if [ -z "${analysis_id}" ]; then
+  echo "no analysis id."
   exit 1
 fi
 
-ce_task_id=$(curl -u "${sonar_login}:" -s -L "${sonar_host_url}/api/ce/activity?q=${sonar_project_key}&onlyCurrents=true" | jq -r .tasks[0].id)
+curl -s -u "${sonar_login}:" -L -o sonar-qualitygates-status.json "${sonar_host_url}/api/qualitygates/project_status?analysisId=${analysis_id}"
 
-curl -s -u "${sonar_login}:" -L -o sonar-qualitygates-status.json "${sonar_host_url}/api/qualitygates/project_status?projectKey=${sonar_project_key}"
+qualitygates_status=$(jq -r '.projectStatus.status' < "sonar-qualitygates-status.json")
 
 jq -n "{
-  version: { \"ce_task_id\": \"${ce_task_id}\" },
+  version: { \"analysis_id\": \"${analysis_id}\" },
   metadata: [
-    { name: \"project_key\", value: \"${sonar_project_key:?}\" }
+    { name: \"qualitygates_status\", value: \"${qualitygates_status:?}\" }
   ]
 }" >&3
