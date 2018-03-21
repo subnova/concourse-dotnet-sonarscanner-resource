@@ -58,7 +58,9 @@ fi
 
 options=""
 extraParams=$(jq -r '.params.extra_params[] // ""' < "${payload}")
-for ep in $extraParams; do options+="/d:$(pwd)/$ep "; done
+for ep in $extraParams; do options+="/d:$ep "; done
+
+ls -l reports
 
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.host.url=$sonar_host_url /d:sonar.login=$sonar_login /k:$sonar_project_key /n:"$sonar_project_name" /v:$version_val $options
 for p in $projects; do dotnet restore $p; done
