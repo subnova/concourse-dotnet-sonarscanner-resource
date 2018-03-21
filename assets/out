@@ -39,45 +39,25 @@ if [ -z "${sonar_project_name}" ]; then
   exit 1
 fi
 
-sonar_version_val=""
-sonar_version=$(jq -r '.params.version // ""' < "${payload}")
+version_val=""
+version=$(jq -r '.params.version // ""' < "${payload}")
 if [ -n "${sonar_version}" ]; then
-  sonar_version_val=$(cat $sonar_version)
+  version_val=$(cat $sonar_version)
 fi
 
-sonar_source=$(jq -r '.params.source // ""' < "${payload}")
-if [ -z "${sonar_source}" ]; then
+source=$(jq -r '.params.source // ""' < "${payload}")
+if [ -z "${source}" ]; then
   echo "source param has not been specified."
   exit 1
 fi
 
-coverage_threshold=$(jq -r '.params.coverage_threshold // 70' < "${payload}")
+options=""
+extraParams=$(jq -r '.params.extra_params[] // ""' < "${payload}")
+for ep in $extraParams; do options+="/d:$eq"; done
 
-cd $sonar_source
-
-source_projects=$(for f in */*.csproj; do grep -L Microsoft.NET.Test.Sdk $f || true; done)
-test_projects=$(for f in */*.csproj; do grep -l Microsoft.NET.Test.Sdk $f || true; done)
-
-mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.host.url=$sonar_host_url /d:sonar.login=$sonar_login /k:$sonar_project_key /n:"$sonar_project_name" /v:$sonar_version_val /d:sonar.cs.opencover.reportsPaths=$1/$sonar_source/opencovercoverage.xml
+mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.host.url=$sonar_host_url /d:sonar.login=$sonar_login /k:$sonar_project_key /n:"$sonar_project_name" /v:$sonar_version_val $options
 dotnet restore
 dotnet build
-# Run unit tests
-for p in ${test_projects}; do dotnet test $p; done
-# Get coverage reports
-cd /opt/tools
-dotnet restore
-instrument_cmd="dotnet minicover instrument --workdir $1/$sonar_source "
-for f in $(echo $test_projects | xargs dirname); do instrument_cmd+="--assemblies $f/**/*.dll "; done
-for f in $(echo $source_projects | xargs dirname); do instrument_cmd+="--sources $f/**/*.cs "; done
-$instrument_cmd
-dotnet minicover reset
-cd "$1/$sonar_source"
-for p in ${test_projects}; do dotnet test --no-build $p; done
-cd /opt/tools
-dotnet minicover uninstrument --workdir $1/$sonar_source
-dotnet minicover report --workdir $1/$sonar_source --threshold $coverage_threshold  || true
-dotnet minicover opencoverreport --workdir $1/$sonar_source --threshold $coverage_threshold || true
-cd "$1/$sonar_source"
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe end /d:sonar.login=$sonar_login
 
 analysis_id=$(curl -u "${sonar_login}:" -s -L "${sonar_host_url}/api/ce/activity?q=${sonar_project_key}&onlyCurrents=true" | jq -r .tasks[0].analysisId)
