@@ -53,7 +53,7 @@ fi
 
 projects=$(jq -r '.params.projects // ""' < "${payload}")
 if [ -z "${projects}" ]; then
-  $project_files=$(for f in **/*.csproj; do dirname $f; done)
+  $project_files=$(for f in $source/**/*.csproj; do dirname $f; done)
 fi
 
 options=""
