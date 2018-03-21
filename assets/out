@@ -6,7 +6,7 @@ cd "${1}"
 
 exec 3>&1
 exec 1>&2
-set +x
+set -x
 
 # for jq
 PATH=/usr/local/bin:$PATH
@@ -41,8 +41,8 @@ fi
 
 version_val=""
 version=$(jq -r '.params.version // ""' < "${payload}")
-if [ -n "${sonar_version}" ]; then
-  version_val=$(cat $sonar_version)
+if [ -n "${version}" ]; then
+  version_val=$(cat $version)
 fi
 
 source=$(jq -r '.params.source // ""' < "${payload}")
@@ -53,9 +53,9 @@ fi
 
 options=""
 extraParams=$(jq -r '.params.extra_params[] // ""' < "${payload}")
-for ep in $extraParams; do options+="/d:$eq"; done
+for ep in $extraParams; do options+="/d:$ep "; done
 
-mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.host.url=$sonar_host_url /d:sonar.login=$sonar_login /k:$sonar_project_key /n:"$sonar_project_name" /v:$sonar_version_val $options
+mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.host.url=$sonar_host_url /d:sonar.login=$sonar_login /k:$sonar_project_key /n:"$sonar_project_name" /v:$version_val $options
 dotnet restore
 dotnet build
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe end /d:sonar.login=$sonar_login
