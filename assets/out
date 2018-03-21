@@ -51,13 +51,18 @@ if [ -z "${source}" ]; then
   exit 1
 fi
 
+projects=$(jq -r '.params.projects // ""' < "${payload}")
+if [ -z "${projects}" ]; then
+  $project_files=$(for f in **/*.csproj; do dirname $f; done)
+fi
+
 options=""
 extraParams=$(jq -r '.params.extra_params[] // ""' < "${payload}")
 for ep in $extraParams; do options+="/d:$ep "; done
 
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.host.url=$sonar_host_url /d:sonar.login=$sonar_login /k:$sonar_project_key /n:"$sonar_project_name" /v:$version_val $options
-dotnet restore
-dotnet build
+for p in $projects; do dotnet restore $p; done
+for p in $projects; do dotnet build $p; done
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe end /d:sonar.login=$sonar_login
 
 analysis_id=$(curl -u "${sonar_login}:" -s -L "${sonar_host_url}/api/ce/activity?q=${sonar_project_key}&onlyCurrents=true" | jq -r .tasks[0].analysisId)
