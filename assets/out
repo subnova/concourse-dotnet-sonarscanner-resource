@@ -51,9 +51,11 @@ if [ -z "${source}" ]; then
   exit 1
 fi
 
+cd $source
+
 projects=$(jq -r '.params.projects // ""' < "${payload}")
 if [ -z "${projects}" ]; then
-  projects=$(for f in $source/**/*.csproj; do dirname $f; done)
+  projects=$(for f in **/*.csproj; do dirname $f; done)
 fi
 
 options=""

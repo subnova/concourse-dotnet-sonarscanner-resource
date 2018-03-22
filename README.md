@@ -16,8 +16,11 @@ Parameters:
 * projects (optional) - the directories that contain the source to scan (defaults to all directories containing a csproj file)
 * extra_params (optional) - list of key=value pairs that will be passed to sonarqube; this can be used to pass additional reports to sonar
 
+N.B. the SonarQube MSBuild process is executed in the context of the source directory, so any extra_params that reference files need to be relative to this location (e.g. ../coverage-reports/opencovercoverage.xml).
+
 The following ```get``` results in the return of the quality gates status of the project in a file called ```sonar-qualitygates-status.json``` in the following [format](https://next.sonarqube.com/sonarqube/web_api/api/qualitygates/project_status).
 
+### Example
 ```
 resource_types:
 - name: sonarqube-scanner
@@ -45,3 +48,4 @@ jobs:
       version: version/version
       source: my-source
 ```
+
