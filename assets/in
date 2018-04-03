@@ -33,13 +33,35 @@ if [ -z "${analysis_id}" ]; then
   exit 1
 fi
 
+# wait for analysis to be complete
+ce_task_info="./ce_task.json"
+ce_task_status="PENDING"
+until [ "${ce_task_status}" != "PENDING" ] && [ "${ce_task_status}" != "IN_PROGRESS" ]; do
+  curl -s -u "${sonar_login}:" -L -o "${ce_task_info}" "${sonar_host_url}/api/ce/task?id=${analysis_id}"
+  ce_task_status=$(jq -r '.task.status // ""' < "${ce_task_info}")
+  if [ "${ce_task_status}" == "PENDING" ] || [ "${ce_task_status}" == "IN_PROGRESS" ]; then
+    echo "Waiting for compute engine result (sleep: 5s)..."
+    sleep 5 # Poll SonarQube compute engine task every 5 seconds.
+  fi
+done
+
+analysis_id=""
+if [ "${ce_task_status}" == "SUCCESS" ]; then
+  analysis_id=$(jq -r '.task.analysisId // ""' < "${ce_task_info}")
+  if [ -z "${analysis_id}" ]; then
+    echo "error: No analysis ID could be fetched from compute engine task result"
+    exit 1
+  fi
+fi
+
 curl -s -u "${sonar_login}:" -L -o sonar-qualitygates-status.json "${sonar_host_url}/api/qualitygates/project_status?analysisId=${analysis_id}"
 
-qualitygates_status=$(jq -r '.projectStatus.status' < "sonar-qualitygates-status.json")
+project_status=$(jq -r '.projectStatus.status' < "sonar-qualitygates-status.json")
 
 jq -n "{
   version: { \"analysis_id\": \"${analysis_id}\" },
   metadata: [
-    { name: \"qualitygates_status\", value: \"${qualitygates_status:?}\" }
+    { name: \"ce_task_status\", value: \"${ce_task_status}\" },
+    { name: \"project_status\", value: \"${project_status:?}\" }
   ]
 }" >&3

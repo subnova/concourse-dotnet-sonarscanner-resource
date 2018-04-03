@@ -51,7 +51,7 @@ if [ -z "${source}" ]; then
   exit 1
 fi
 
-cd $source
+cd "$source"
 
 projects=$(jq -r '.params.projects // ""' < "${payload}")
 if [ -z "${projects}" ]; then
@@ -59,7 +59,7 @@ if [ -z "${projects}" ]; then
 fi
 
 options=""
-extraParams=$(jq -r '.params.extra_params[] // ""' < "${payload}")
+extraParams=$(jq -r 'if .params.extra_params then .params.extra_params[] else empty end' < "${payload}")
 for ep in $extraParams; do options+="/d:$ep "; done
 
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.host.url=$sonar_host_url /d:sonar.login=$sonar_login /k:$sonar_project_key /n:"$sonar_project_name" /v:$version_val $options
@@ -67,11 +67,23 @@ for p in $projects; do dotnet restore $p; done
 for p in $projects; do dotnet build $p; done
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe end /d:sonar.login=$sonar_login
 
-analysis_id=$(curl -u "${sonar_login}:" -s -L "${sonar_host_url}/api/ce/activity?q=${sonar_project_key}&onlyCurrents=true" | jq -r .tasks[0].analysisId)
+scanner_report_file=.sonarqube/out/.sonar/report-task.txt
+
+echo "Reading SonarQube scanner report (${scanner_report_file})..."
+if [ -f "${scanner_report_file}" ]; then
+  while read -r line; do declare $line; done < ${scanner_report_file}
+else
+  echo "error: SonarQube report could not be located."
+  exit 1
+fi
 
 jq -n "{
-  version: { \"analysis_id\": \"${analysis_id}\" },
+  version: {analysis_id: \"${ceTaskId:?}\"},
   metadata: [
-    { name: \"project_key\", value: \"${sonar_project_key:?}\" }
+    { name: \"project_key\", value: \"${projectKey:?}\" },
+    { name: \"server_url\", value: \"${serverUrl:?}\" },
+    { name: \"server_version\", value: \"${serverVersion:?}\" },
+    { name: \"dashboard_url\", value: \"${dashboardUrl:?}\" },
+    { name: \"ce_task_url\", value: \"${ceTaskUrl:?}\" }
   ]
 }" >&3
