@@ -27,9 +27,9 @@ if [ -z "${sonar_login}" ]; then
   exit 1
 fi
 
-analysis_id=$(jq -r '.version.analysis_id // ""' < "${payload}")
-if [ -z "${analysis_id}" ]; then
-  echo "no analysis id."
+ce_task_id=$(jq -r '.version.ce_task_id // ""' < "${payload}")
+if [ -z "${ce_task_id}" ]; then
+  echo "no version (ce_task_id)."
   exit 1
 fi
 
@@ -37,7 +37,7 @@ fi
 ce_task_info="./ce_task.json"
 ce_task_status="PENDING"
 until [ "${ce_task_status}" != "PENDING" ] && [ "${ce_task_status}" != "IN_PROGRESS" ]; do
-  curl -s -u "${sonar_login}:" -L -o "${ce_task_info}" "${sonar_host_url}/api/ce/task?id=${analysis_id}"
+  curl -s -u "${sonar_login}:" -L -o "${ce_task_info}" "${sonar_host_url}/api/ce/task?id=${ce_task_id}"
   ce_task_status=$(jq -r '.task.status // ""' < "${ce_task_info}")
   if [ "${ce_task_status}" == "PENDING" ] || [ "${ce_task_status}" == "IN_PROGRESS" ]; then
     echo "Waiting for compute engine result (sleep: 5s)..."
