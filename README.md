@@ -20,6 +20,22 @@ N.B. the SonarQube MSBuild process is executed in the context of the source dire
 
 The following ```get``` results in the return of the quality gates status of the project in a file called ```sonar-qualitygates-status.json``` in the following [format](https://next.sonarqube.com/sonarqube/web_api/api/qualitygates/project_status).
 
+## Requirements
+
+As part of the scan, a ```dotnet restore``` and ```dotnet build``` will be executed against each directory listed in the ```projects``` parameter (or all directories containing a ```.csproj``` file).  Any Visual Studio solution file (.sln) will not be used.  As such, SonarQube requires that each ```.csproj``` file contains a ```ProjectGuid``` project property.
+
+e.g.
+
+```
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <ProjectGuid>{2AF61F67-D12F-4E53-92BC-C0DC3EA5DAC5}</ProjectGuid>
+
+    ...
+  </PropertyGroup>
+```
+
 ### Example
 ```
 resource_types:
@@ -47,5 +63,8 @@ jobs:
       project_key: myproject
       version: version/version
       source: my-source
+      projects: MyApp MyApp.Model MyApp.Test
+      extra_params:
+      - sonar.cs.vstest.reportsPaths=../unit-test-results/*.trx
+      - sonar.verbose=true
 ```
-

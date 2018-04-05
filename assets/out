@@ -21,6 +21,8 @@ if [ -z "${sonar_host_url}" ]; then
   exit 1
 fi
 
+sonar_host_url=${sonar_host_url%/}
+
 sonar_login=$(jq -r '.source.login // ""' < "${payload}")
 if [ -z "${sonar_login}" ]; then
   echo "sonar_login param has not been specified."
