@@ -7,6 +7,7 @@ ENV SONAR_SCANNER_MSBUILD_VERSION=4.0.2.892 \
     SONAR_SCANNER_MSBUILD_HOME=/opt/sonar-scanner-msbuild \
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true \
     DOTNET_CLI_TELEMETRY_OPTOUT=true \
+    DOTNET_RUNTIME_VERSION=2.0.5 \
     DOTNET_SDK_VERSION=2.1.4
 
 RUN set -x \
@@ -25,12 +26,15 @@ RUN set -x \
     wget \
     unzip \
     jq \
-    -y \
+    -y
+
+RUN set - x \
   && curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg \
   && mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg \
-  && sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-debian-jessie-prod jessie main" > /etc/apt/sources.list.d/dotnetdev.list' \
+  && curl https://packages.microsoft.com/config/debian/8/prod.list > prod.list \
+  && mv prod.list /etc/apt/sources.list.d/microsoft-prod.list \
   && apt-get update \
-  && apt-get install dotnet-sdk-$DOTNET_SDK_VERSION -y \
+  && apt-get install dotnet-host=$DOTNET_RUNTIME_VERSION-1 dotnet-hostfxr-$DOTNET_RUNTIME_VERSION dotnet-runtime-$DOTNET_RUNTIME_VERSION dotnet-sdk-$DOTNET_SDK_VERSION -y \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
