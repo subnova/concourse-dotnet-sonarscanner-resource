@@ -61,8 +61,16 @@ if [ -z "${projects}" ]; then
 fi
 
 options=""
-extraParams=$(jq -r 'if .params.extra_params then .params.extra_params[] else empty end' < "${payload}")
-for ep in $extraParams; do exep=$(eval echo $ep) options+="/d:$exep "; done
+additional_properties=$(jq -r 'if .params.additional_properties then .params.additional_properties[] else empty end' < "${payload}")
+for ep in $additional_properties; do exep=$(eval echo $ep) options+="/d:$exep "; done
+
+additional_properties_file=$(jq -r '.params.additional_properties_file // ""' < "${payload}")
+if [[ ! -z "${additional_properties_file}" ]]; then
+	props=$(read_properties "${additional_properties_file}")
+	while read -r p; do
+		options+=" -D${p}"
+	done <<< "${props}"
+fi
 
 mono /opt/sonar-scanner-msbuild/SonarQube.Scanner.MSBuild.exe begin /d:sonar.host.url=$sonar_host_url /d:sonar.login=$sonar_login /k:$sonar_project_key /n:"$sonar_project_name" /v:$version_val $options
 for p in $projects; do dotnet restore $p; done

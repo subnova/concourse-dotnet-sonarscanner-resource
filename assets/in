@@ -2,17 +2,24 @@
 
 set -e
 
-cd "${1}"
-
 exec 3>&1
 exec 1>&2
 set +x
+
+dest="${1}"
+if [[ -z "${dest}" ]]; then
+	echo "usage: ${0} <path/to/destination>"
+	exit 1
+fi
+if [[ ! -d "${dest}" ]]; then
+	echo "error: Destination path (${dest}) does not exist or is not a directory."
+	exit 1
+fi
 
 # for jq
 PATH=/usr/local/bin:$PATH
 
 payload=$(mktemp /tmp/resource-out.XXXXXX)
-
 cat > "${payload}" <&0
 
 sonar_host_url=$(jq -r '.source.host_url // ""' < "${payload}")
@@ -20,20 +27,29 @@ if [ -z "${sonar_host_url}" ]; then
   echo "host_url param has not been specified."
   exit 1
 fi
-
-sonar_host_url=${sonar_host_url%/}
+sonar_host_url=$(sanitize_base_url "${sonar_host_url}")
 
 sonar_login=$(jq -r '.source.login // ""' < "${payload}")
-if [ -z "${sonar_login}" ]; then
-  echo "login param has not been specified."
-  exit 1
+# if [ -z "${sonar_login}" ]; then
+#   echo "login param has not been specified."
+#   exit 1
+# fi
+
+sonar_password=$(jq -r '.source.password // ""' < "${payload}")
+if [[ ! -z "${sonar_login}" ]] && [[ "${sonar_login}" != "" ]]; then
+	sonar_token="${sonar_login}:"
+	if [[ ! -z "${sonar_password}" ]] && [[ "${sonar_password}" != "" ]]; then
+		sonar_token+="${sonar_password}"
+	fi
 fi
 
 ce_task_id=$(jq -r '.version.ce_task_id // ""' < "${payload}")
 if [ -z "${ce_task_id}" ]; then
-  echo "no version (ce_task_id)."
+  echo "version to fetch cannot be determined: ce_task_id not set: (ce_task_id)?"
   exit 1
 fi
+
+cd "${dest}"
 
 # wait for analysis to be complete
 ce_task_info="./ce_task.json"
